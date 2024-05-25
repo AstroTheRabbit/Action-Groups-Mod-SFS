@@ -5,6 +5,7 @@ using ModLoader.Helpers;
 using UITools;
 using SFS.IO;
 using System.Collections.Generic;
+using SFS.World;
 
 namespace ActionGroupsMod
 {
@@ -29,10 +30,13 @@ namespace ActionGroupsMod
 
         public override void Load()
         {
+            SceneHelper.OnWorldSceneLoaded += () =>
+            {
+                GUI.CreateUI("world");
+                PlayerController.main.player.OnChange += Patches.OnPlayerChange;
+            };
+            SceneHelper.OnWorldSceneUnloaded += () => PlayerController.main.player.OnChange -= Patches.OnPlayerChange;;
             SceneHelper.OnBuildSceneLoaded += () => GUI.CreateUI("build");
-            SceneHelper.OnWorldSceneLoaded += () => GUI.CreateUI("world");
-            SceneHelper.OnBuildSceneUnloaded += GUI.DestroyWindow;
-            SceneHelper.OnWorldSceneUnloaded += GUI.DestroyWindow;
         }
     }
 }

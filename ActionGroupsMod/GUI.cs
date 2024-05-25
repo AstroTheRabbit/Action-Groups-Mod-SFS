@@ -41,6 +41,8 @@ namespace ActionGroupsMod
 
         public static void CreateUI(string sceneName)
         {
+            DestroyWindow();
+
             windowHolder = Builder.CreateHolder(Builder.SceneToAttach.CurrentScene, "ActionGroups - Window Holder");
             partsOutline = windowHolder.AddComponent<PartsOutline>();
 
@@ -82,9 +84,10 @@ namespace ActionGroupsMod
 
         public static void DestroyWindow()
         {
-            actionGroupButtons.Clear();
+            actionGroupButtons?.Clear();
             actionGroupInfoUI?.DestroyUI();
-            Object.Destroy(windowHolder);
+            if (windowHolder != null)
+                Object.Destroy(windowHolder);
         }
 
         public static void UpdateUI(ActionGroup selected, bool setStagingSelected = false)
@@ -213,6 +216,7 @@ namespace ActionGroupsMod
                     button_hold.SetSelected(ag.holdToActivate);
                 }
             );
+            button_hold.SetSelected(ag.holdToActivate);
 
             Builder.CreateButton
             (
