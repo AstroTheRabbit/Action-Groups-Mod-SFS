@@ -47,9 +47,31 @@ namespace ActionGroupsMod
         public KeybindingsPC.Key key = null;
         public List<Part> parts = new List<Part>();
 
-        public void RemoveDestroyedParts()
+        public void TogglePart(Part part, out bool requiresRedraw)
         {
-            parts = parts.Where((Part p) => p != null).ToList();
+            if (parts.Contains(part))
+            {
+                RemovePart(part, out requiresRedraw);
+            }
+            else
+            {
+                AddPart(part, out requiresRedraw);
+            }
+        }
+
+        public void AddPart(Part part, out bool requiresRedraw)
+        {
+            requiresRedraw = false;
+            if (!parts.Contains(part) && Patches.CanStagePart(part))
+            {
+                parts.Add(part);
+                requiresRedraw = GUI.windowHolder != null && GUI.SelectedActionGroup == this;
+            }
+        }
+
+        public void RemovePart(Part part, out bool requiresRedraw)
+        {
+            requiresRedraw = parts.Remove(part) && GUI.windowHolder != null & GUI.SelectedActionGroup == this;
         }
     }
 }

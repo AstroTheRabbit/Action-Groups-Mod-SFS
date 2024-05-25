@@ -1,15 +1,19 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
-using HarmonyLib;
 using UnityEngine;
+using UnityEngine.UI;
+using HarmonyLib;
 using UITools;
 using SFS.Input;
+using SFS.Parts;
+using SFS.Builds;
 using SFS.UI.ModGUI;
 
 using Type = SFS.UI.ModGUI.Type;
 using Object = UnityEngine.Object;
-using SFS.World;
+using Space = SFS.UI.ModGUI.Space;
+using Button = SFS.UI.ModGUI.Button;
 
 namespace ActionGroupsMod
 {
@@ -18,10 +22,12 @@ namespace ActionGroupsMod
         static readonly int windowID = Builder.GetRandomID();
         static readonly int actionGroupsWindowID = Builder.GetRandomID();
         static readonly int actionGroupInfoWindowID = Builder.GetRandomID();
+        static PartsOutline partsOutline;
 
         public static Vector2Int windowSize = new Vector2Int(560, 740);
         public static Vector2Int HalfWindowSize => new Vector2Int((windowSize.x - 30) / 2, windowSize.y - 50);
-        public static bool ActionGroupSelected { get; private set; } = false;
+        public static ActionGroup SelectedActionGroup { get; private set; } = null;
+        static ActionGroup minimisedActionGroup = null;
 
         public static GameObject windowHolder;
         static ClosableWindow window;
@@ -30,11 +36,13 @@ namespace ActionGroupsMod
         static Window window_actionGroupInfo;
     
         static List<Button> actionGroupButtons;
+        static Button newActionGroupButton;
         static ActionGroupInfoUI actionGroupInfoUI;
 
         public static void CreateUI(string sceneName)
         {
             windowHolder = Builder.CreateHolder(Builder.SceneToAttach.CurrentScene, "ActionGroups - Window Holder");
+            partsOutline = windowHolder.AddComponent<PartsOutline>();
 
             window = UIToolsBuilder.CreateClosableWindow
             (
@@ -48,6 +56,18 @@ namespace ActionGroupsMod
             );
             window.RegisterPermanentSaving(Main.main.ModNameID + "." + sceneName);
             window.CreateLayoutGroup(Type.Horizontal);
+            window.OnMinimizedChangedEvent += () =>
+            {
+                if (window.Minimized)
+                {
+                    minimisedActionGroup = SelectedActionGroup;
+                    SelectedActionGroup = null;
+                }
+                else
+                {
+                    UpdateUI(minimisedActionGroup);
+                }
+            };
             
             window_actionGroups = Builder.CreateWindow(window, actionGroupsWindowID, HalfWindowSize.x, HalfWindowSize.y, savePosition: false);
             window_actionGroups.CreateLayoutGroup(Type.Vertical, TextAnchor.UpperCenter);
@@ -57,7 +77,7 @@ namespace ActionGroupsMod
             window_actionGroupInfo.CreateLayoutGroup(Type.Vertical, TextAnchor.UpperCenter);
             window_actionGroupInfo.EnableScrolling(Type.Vertical);
 
-            RedrawUI(null);
+            UpdateUI(null);
         }
 
         public static void DestroyWindow()
@@ -67,9 +87,12 @@ namespace ActionGroupsMod
             Object.Destroy(windowHolder);
         }
 
-        public static void RedrawUI(ActionGroup selected, bool setStagingSelected = false)
+        public static void UpdateUI(ActionGroup selected, bool setStagingSelected = false)
         {
             actionGroupButtons?.ForEach(Destroy);
+            newActionGroupButton.Destroy();
+
+            SelectedActionGroup = selected;
 
             if (selected == null)
             {
@@ -99,7 +122,7 @@ namespace ActionGroupsMod
                 HalfWindowSize.x - 10,
                 120,
                 text: ag.name + "\n(" + KeybindScreen.GetDisplayName(ag.key) + ")",
-                onClick: () => RedrawUI(selected ? null : ag, true)
+                onClick: () => UpdateUI(selected ? null : ag, true)
             );
             if (selected)
             {
@@ -124,11 +147,14 @@ namespace ActionGroupsMod
 
     public class ActionGroupInfoUI
     {
-        public TextInput input_name;
-        public Button button_key;
+        readonly TextInput input_name;
+        readonly Button button_key;
+        readonly Separator partIconsSeperator;
+        readonly Container partIconsHolder;
 
         public ActionGroupInfoUI(ActionGroup ag, Window window)
         {
+            // * Name
             input_name = Builder.CreateTextInput
             (
                 window,
@@ -141,10 +167,11 @@ namespace ActionGroupsMod
                 (string input) =>
                 {
                     ag.name = input;
-                    GUI.RedrawUI(ag);
+                    GUI.UpdateUI(ag);
                 }
             );
 
+            // * Keybind
             button_key = Builder.CreateButton
             (
                 window,
@@ -153,12 +180,40 @@ namespace ActionGroupsMod
                 text: KeybindScreen.GetDisplayName(ag.key),
                 onClick: () => OpenKeybindScreen(ag)
             );
+
+            // * Part Icons
+            partIconsSeperator = Builder.CreateSeparator(window, GUI.HalfWindowSize.x - 10, 20);
+            partIconsHolder = Builder.CreateContainer(window);
+            partIconsHolder.CreateLayoutGroup(Type.Horizontal);
+
+            Container partIconsHolderLeft = Builder.CreateContainer(partIconsHolder);
+            partIconsHolderLeft.CreateLayoutGroup(Type.Vertical);
+            
+            Container partIconsHolderRight = Builder.CreateContainer(partIconsHolder);
+            partIconsHolderRight.CreateLayoutGroup(Type.Vertical);
+
+            int heightLeft = 0, heightRight = 0;
+            foreach (Part part in ag.parts)
+            {
+                if (heightLeft < heightRight)
+                {
+                    CreatePartIcon(partIconsHolderLeft, part, GUI.HalfWindowSize.x / 2, out int height);
+                    heightLeft += height;
+                }
+                else
+                {
+                    CreatePartIcon(partIconsHolderRight, part, GUI.HalfWindowSize.x / 2, out int height);
+                    heightRight += height;
+                }
+            }
         }
 
         public void DestroyUI()
         {
-            Object.Destroy(input_name.gameObject);
-            Object.Destroy(button_key.gameObject);
+            input_name.Destroy();
+            button_key.Destroy();
+            partIconsSeperator.Destroy();
+            partIconsHolder.Destroy();
         }
 
         public void OpenKeybindScreen(ActionGroup ag)
@@ -170,13 +225,30 @@ namespace ActionGroupsMod
                 (KeybindingsPC.Key result) =>
                 {
                     ag.key = result;
-                    GUI.RedrawUI(ag);
+                    GUI.UpdateUI(ag);
                 }
             );
         }
+
+        // ? Derived from `SFS.World.StageUI.CreatePartIcon`.
+        public static RawImage CreatePartIcon(Transform holder, Part part, int width, out int height)
+        {
+            SFS.Base.partsLoader.parts.TryGetValue(part.name, out Part originalPart);
+            PartSave save = new PartSave(part)
+            {
+                orientation = originalPart != null ? originalPart.orientation.orientation.Value.GetCopy() : new SFS.Parts.Modules.Orientation(1, 1, 0)
+            };
+            RenderTexture texture = PartIconCreator.main.CreatePartIcon_Staging(save, width);
+            RawImage image = Object.Instantiate(Patches.StagingDrawer.stageUIPrefab.iconPrefab, holder);
+            image.gameObject.SetActive(true);
+            image.texture = texture;
+            image.rectTransform.sizeDelta = new Vector2(texture.width, texture.height) / 2;
+            height = texture.height;
+            return image;
+        }
     }
 
-    // ? Based on `SFS.Input.KeyBinder`.
+    // ? Derived from `SFS.Input.KeyBinder`.
     class KeybindScreen : Screen_Base
     {
         static KeybindScreen main;
@@ -282,6 +354,26 @@ namespace ActionGroupsMod
                         return k.key.ToString();
                 };
             }
+        }
+    }
+
+    // ? Derived from `SFS.Builds.BuildSelector`.
+    public class PartsOutline : MonoBehaviour, I_GLDrawer
+    {
+        void Awake()
+        {
+            GLDrawer.Register(this);
+        }
+
+        void OnDestroy()
+        {
+            GLDrawer.Unregister(this);
+        }
+
+        public void Draw()
+        {
+            if (GUI.SelectedActionGroup != null)
+                BuildSelector.DrawOutline(GUI.SelectedActionGroup.parts, false, Color.white, 0.1f);
         }
     }
 }
