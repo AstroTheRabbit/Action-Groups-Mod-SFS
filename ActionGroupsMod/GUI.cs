@@ -109,6 +109,20 @@ namespace ActionGroupsMod
                 .GetCurrentActionGroups()
                 .Select((ActionGroup ag) => CreateActionGroupUI(ag, ag == selected))
                 .ToList();
+            
+            newActionGroupButton = Builder.CreateButton
+                (
+                    window_actionGroups,
+                    HalfWindowSize.x - 10,
+                    60,
+                    text: "New",
+                    onClick: () =>
+                    {
+                        ActionGroup ag = new ActionGroup();
+                        ActionGroupManager.GetCurrentActionGroups().Add(ag);
+                        UpdateUI(ag, true);
+                    }
+                );
 
             if (setStagingSelected)
                 Patches.StagingDrawer.SetSelected(null);
@@ -121,7 +135,7 @@ namespace ActionGroupsMod
                 window_actionGroups,
                 HalfWindowSize.x - 10,
                 120,
-                text: ag.name + "\n(" + KeybindScreen.GetDisplayName(ag.key) + ")",
+                text: $"{ag.name}\n({KeybindScreen.GetDisplayName(ag.key)})",
                 onClick: () => UpdateUI(selected ? null : ag, true)
             );
             if (selected)
@@ -149,8 +163,9 @@ namespace ActionGroupsMod
     {
         readonly TextInput input_name;
         readonly Button button_key;
-        readonly Separator partIconsSeperator;
-        readonly Container partIconsHolder;
+        readonly Container container_hold_delete;
+        readonly Separator seperator_partIcons;
+        readonly Container container_partIcons;
 
         public ActionGroupInfoUI(ActionGroup ag, Window window)
         {
@@ -181,15 +196,47 @@ namespace ActionGroupsMod
                 onClick: () => OpenKeybindScreen(ag)
             );
 
-            // * Part Icons
-            partIconsSeperator = Builder.CreateSeparator(window, GUI.HalfWindowSize.x - 10, 20);
-            partIconsHolder = Builder.CreateContainer(window);
-            partIconsHolder.CreateLayoutGroup(Type.Horizontal);
+            // * Hold & Delete
+            container_hold_delete = Builder.CreateContainer(window);
+            container_hold_delete.CreateLayoutGroup(Type.Horizontal);
+            
+            Button button_hold = null;
+            button_hold = Builder.CreateButton
+            (
+                container_hold_delete,
+                (GUI.HalfWindowSize.x - 30) / 2,
+                50,
+                text: "Hold",
+                onClick: () =>
+                {
+                    ag.holdToActivate = !ag.holdToActivate;
+                    button_hold.SetSelected(ag.holdToActivate);
+                }
+            );
 
-            Container partIconsHolderLeft = Builder.CreateContainer(partIconsHolder);
+            Builder.CreateButton
+            (
+                container_hold_delete,
+                (GUI.HalfWindowSize.x - 30) / 2,
+                50,
+                text: "Delete",
+                onClick: () =>
+                {
+                    ActionGroupManager.GetCurrentActionGroups().Remove(ag);
+                    GUI.UpdateUI(null);
+                }
+            );
+
+
+            // * Part Icons
+            seperator_partIcons = Builder.CreateSeparator(window, GUI.HalfWindowSize.x - 10, 20);
+            container_partIcons = Builder.CreateContainer(window);
+            container_partIcons.CreateLayoutGroup(Type.Horizontal);
+
+            Container partIconsHolderLeft = Builder.CreateContainer(container_partIcons);
             partIconsHolderLeft.CreateLayoutGroup(Type.Vertical);
             
-            Container partIconsHolderRight = Builder.CreateContainer(partIconsHolder);
+            Container partIconsHolderRight = Builder.CreateContainer(container_partIcons);
             partIconsHolderRight.CreateLayoutGroup(Type.Vertical);
 
             int heightLeft = 0, heightRight = 0;
@@ -212,8 +259,9 @@ namespace ActionGroupsMod
         {
             input_name.Destroy();
             button_key.Destroy();
-            partIconsSeperator.Destroy();
-            partIconsHolder.Destroy();
+            container_hold_delete.Destroy();
+            seperator_partIcons.Destroy();
+            container_partIcons.Destroy();
         }
 
         public void OpenKeybindScreen(ActionGroup ag)

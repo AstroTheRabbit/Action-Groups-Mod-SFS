@@ -13,15 +13,7 @@ namespace ActionGroupsMod
         public static bool InWorld => SceneManager.GetActiveScene().name == "World_PC";
         public static bool InBuild => SceneManager.GetActiveScene().name == "Build_PC";
 
-        public static List<ActionGroup> buildActionGroups = new List<ActionGroup>()
-        {
-            new ActionGroup(),
-            new ActionGroup(),
-            new ActionGroup(),
-            new ActionGroup(),
-            new ActionGroup(),
-            new ActionGroup(),
-        };
+        public static List<ActionGroup> buildActionGroups = new List<ActionGroup>();
 
         public static List<ActionGroup> GetCurrentActionGroups()
         {
@@ -45,6 +37,7 @@ namespace ActionGroupsMod
     {
         public string name = "Unnamed";
         public KeybindingsPC.Key key = null;
+        public bool holdToActivate = false;
         public List<Part> parts = new List<Part>();
 
         public void TogglePart(Part part, out bool requiresRedraw)
