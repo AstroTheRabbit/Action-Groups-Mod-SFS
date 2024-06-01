@@ -33,74 +33,50 @@ namespace ActionGroupsMod
 
         public override void Load()
         {
-            // SceneHelper.OnWorldSceneLoaded += () => GUI.CreateUI("world");
-            // SceneHelper.OnBuildSceneLoaded += () => GUI.CreateUI("build");
+            SceneHelper.OnWorldSceneLoaded += () => GUI.CreateUI("world");
+            SceneHelper.OnBuildSceneLoaded += () => GUI.CreateUI("build");
 
-            // SceneHelper.OnWorldSceneLoaded += () => PlayerController.main.player.OnChange += Patches.OnPlayerChange;
-            // SceneHelper.OnWorldSceneUnloaded += () => PlayerController.main.player.OnChange -= Patches.OnPlayerChange;
+            SceneHelper.OnWorldSceneLoaded += () => PlayerController.main.player.OnChange += Patches.OnPlayerChange;
+            SceneHelper.OnWorldSceneUnloaded += () => PlayerController.main.player.OnChange -= Patches.OnPlayerChange;
 
-            // SceneHelper.OnHomeSceneUnloaded += () =>
-            // {
-            //     Debug.Log("CustomBlueprintHelper.AddOnSave? " + CustomBlueprintHelper.onSave == null);
-            //     Debug.Log("CustomBlueprintHelper.AddOnLoad? " + CustomBlueprintHelper.onLoad == null);
-            //     Debug.Log("CustomBlueprintHelper.AddOnLaunch? " + CustomBlueprintHelper.onLaunch == null);
-            //     Debug.Log("CustomRocketSaveHelper.AddOnSave? " + CustomRocketSaveHelper.onSave == null);
-            //     Debug.Log("CustomRocketSaveHelper.AddOnLoad? " + CustomRocketSaveHelper.onLoad == null);
-            // };
+            CustomBlueprintHelper.OnSave += (CustomBlueprint bp) =>
+            {
+                Debug.Log("CustomBlueprintHelper.OnSave!!!");
+                bp.AddCustomData(ModNameID, ActionGroupSave.CreateSavesBuild());
+            };
 
-            CustomBlueprintHelper.AddOnSave
-            (
-                (CustomBlueprint bp) =>
-                {
-                    Debug.Log("CustomBlueprintHelper.AddOnSave!!!");
-                    bp.AddCustomData(ModNameID, ActionGroupSave.CreateSavesBuild());
-                }
-            );
+            CustomBlueprintHelper.OnLoad += (CustomBlueprint bp) =>
+            {
+                Debug.Log("CustomBlueprintHelper.OnLoad!!!");
+                List<ActionGroupSave> saves = bp.GetCustomData<List<ActionGroupSave>>(ModNameID, out bool successful);
+                if (successful)
+                    ActionGroupSave.LoadSavesBuild(saves);
+                else
+                    ActionGroupManager.buildActionGroups = new List<ActionGroup>();
+                GUI.UpdateUI(null);
+            };
+            CustomBlueprintHelper.OnLaunch += (CustomBlueprint bp, Rocket[] rockets, Part[] parts) =>
+            {
+                Debug.Log("CustomBlueprintHelper.OnLaunch!!!");
+                List<ActionGroupSave> saves = bp.GetCustomData<List<ActionGroupSave>>(ModNameID, out bool successful);
+                if (successful)
+                    ActionGroupSave.OnBlueprintSpawn(saves, parts);
+            };
 
-            CustomBlueprintHelper.AddOnLoad
-            (
-                (CustomBlueprint bp) =>
-                {
-                    Debug.Log("CustomBlueprintHelper.AddOnLoad!!!");
-                    List<ActionGroupSave> saves = bp.GetCustomData<List<ActionGroupSave>>(ModNameID, out bool successful);
-                    if (successful)
-                        ActionGroupSave.LoadSavesBuild(saves);
-                    else
-                        ActionGroupManager.buildActionGroups = new List<ActionGroup>();
-                    GUI.UpdateUI(null);
-                }
-            );
-            CustomBlueprintHelper.AddOnLaunch
-            (
-                (CustomBlueprint bp, Rocket[] rockets, Part[] parts) =>
-                {
-                    Debug.Log("CustomBlueprintHelper.AddOnLaunch!!!");
-                    List<ActionGroupSave> saves = bp.GetCustomData<List<ActionGroupSave>>(ModNameID, out bool successful);
-                    if (successful)
-                        ActionGroupSave.OnBlueprintSpawn(saves, parts);
-                }
-            );
-
-            CustomRocketSaveHelper.AddOnSave
-            (
-                (CustomRocketSave save, Rocket rocket) =>
-                {
-                    Debug.Log("CustomRocketSaveHelper.AddOnSave!!!");
-                    if (rocket.TryGetComponent(out ActionGroupModule actionGroupModule))
-                        save.AddCustomData(ModNameID, actionGroupModule.actionGroups);
-                }
-            );
-            CustomRocketSaveHelper.AddOnLoad
-            (
-                (CustomRocketSave save, Rocket rocket) =>
-                {
-                    Debug.Log("CustomRocketSaveHelper.AddOnLoad!!!");
-                    var saves = save.GetCustomData<List<ActionGroupSave>>(ModNameID, out bool successful);
-                    if (successful)
-                        ActionGroupSave.LoadSavesWorld(saves, rocket);
-                    GUI.UpdateUI(null);
-                }
-            );
+            CustomRocketSaveHelper.OnSave += (CustomRocketSave save, Rocket rocket) =>
+            {
+                Debug.Log("CustomRocketSaveHelper.OnSave!!!");
+                if (rocket.TryGetComponent(out ActionGroupModule actionGroupModule))
+                    save.AddCustomData(ModNameID, actionGroupModule.actionGroups);
+            };
+            CustomRocketSaveHelper.OnLoad += (CustomRocketSave save, Rocket rocket) =>
+            {
+                Debug.Log("CustomRocketSaveHelper.OnLoad!!!");
+                var saves = save.GetCustomData<List<ActionGroupSave>>(ModNameID, out bool successful);
+                if (successful)
+                    ActionGroupSave.LoadSavesWorld(saves, rocket);
+                GUI.UpdateUI(null);
+            };
         }
     }
 }
