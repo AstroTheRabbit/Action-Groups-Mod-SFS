@@ -1,9 +1,8 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
-using UnityEngine.SceneManagement;
 using UnityEngine;
-using Newtonsoft.Json;
+using UnityEngine.SceneManagement;
 using SFS.Input;
 using SFS.World;
 using SFS.Parts;
@@ -36,7 +35,6 @@ namespace ActionGroupsMod
         }
     }
 
-    [Serializable]
     public class ActionGroup
     {
         public string name = "Unnamed";
@@ -44,6 +42,16 @@ namespace ActionGroupsMod
         public bool holdToActivate = false;
         public bool holdToggled = false;
         public List<Part> parts = new List<Part>();
+
+        internal ActionGroup() { }
+
+        public ActionGroup(ActionGroupSave save, List<Part> parts)
+        {
+            name = save.name;
+            key = save.key;
+            holdToActivate = save.holdToActivate;
+            parts = save.partIndices.Where(parts.IsValidIndex).Select((int i) => parts[i]).ToList();
+        }
 
         public void TogglePart(Part part, out bool requiresRedraw)
         {

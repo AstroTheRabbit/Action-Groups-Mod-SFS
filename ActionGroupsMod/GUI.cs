@@ -12,8 +12,8 @@ using SFS.UI.ModGUI;
 
 using Type = SFS.UI.ModGUI.Type;
 using Object = UnityEngine.Object;
-using Space = SFS.UI.ModGUI.Space;
 using Button = SFS.UI.ModGUI.Button;
+using GUIElement = SFS.UI.ModGUI.GUIElement;
 
 namespace ActionGroupsMod
 {
