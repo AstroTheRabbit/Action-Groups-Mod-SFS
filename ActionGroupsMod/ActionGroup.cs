@@ -45,12 +45,16 @@ namespace ActionGroupsMod
 
         internal ActionGroup() { }
 
-        public ActionGroup(ActionGroupSave save, List<Part> parts)
+        public ActionGroup(ActionGroupSave save, List<Part> partsList)
         {
             name = save.name;
             key = save.key;
             holdToActivate = save.holdToActivate;
-            parts = save.partIndices.Where(parts.IsValidIndex).Select((int i) => parts[i]).ToList();
+            foreach (int i in save.partIndices)
+            {
+                if (partsList.IsValidIndex(i))
+                    AddPart(partsList[i], out bool _);
+            }
         }
 
         public void TogglePart(Part part, out bool requiresRedraw)
@@ -81,7 +85,7 @@ namespace ActionGroupsMod
             requiresRedraw = parts.Remove(part) && GUI.windowHolder != null & GUI.SelectedActionGroup == this;
 
             if (BuildManager.main != null)
-                part.aboutToDestroy = (Action<Part>) Delegate.Remove(part.aboutToDestroy, new Action<Part>(OnPartDestroyed));
+                part.aboutToDestroy += (Action<Part>) Delegate.Remove(part.aboutToDestroy, new Action<Part>(OnPartDestroyed));
             else
                 part.onPartDestroyed = (Action<Part>) Delegate.Remove(part.onPartDestroyed, new Action<Part>(OnPartDestroyed));
         }

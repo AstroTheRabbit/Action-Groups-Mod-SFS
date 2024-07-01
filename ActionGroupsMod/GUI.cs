@@ -14,6 +14,7 @@ using Type = SFS.UI.ModGUI.Type;
 using Object = UnityEngine.Object;
 using Button = SFS.UI.ModGUI.Button;
 using GUIElement = SFS.UI.ModGUI.GUIElement;
+using UnityEngine.SceneManagement;
 
 namespace ActionGroupsMod
 {
@@ -22,7 +23,6 @@ namespace ActionGroupsMod
         static readonly int windowID = Builder.GetRandomID();
         static readonly int actionGroupsWindowID = Builder.GetRandomID();
         static readonly int actionGroupInfoWindowID = Builder.GetRandomID();
-        static PartsOutline partsOutline;
 
         public static Vector2Int windowSize = new Vector2Int(560, 740);
         public static Vector2Int HalfWindowSize => new Vector2Int((windowSize.x - 30) / 2, windowSize.y - 50);
@@ -39,12 +39,12 @@ namespace ActionGroupsMod
         static Button newActionGroupButton;
         static ActionGroupInfoUI actionGroupInfoUI;
 
-        public static void CreateUI(string sceneName)
+        static void CreateUI()
         {
             DestroyWindow();
 
             windowHolder = Builder.CreateHolder(Builder.SceneToAttach.CurrentScene, "ActionGroups - Window Holder");
-            partsOutline = windowHolder.AddComponent<PartsOutline>();
+            windowHolder.AddComponent<PartsOutline>();
 
             window = UIToolsBuilder.CreateClosableWindow
             (
@@ -56,7 +56,7 @@ namespace ActionGroupsMod
                 savePosition: true,
                 titleText: "Action Groups"
             );
-            window.RegisterPermanentSaving(Main.main.ModNameID + "." + sceneName);
+            window.RegisterPermanentSaving(Main.main.ModNameID + "." + SceneManager.GetActiveScene().name);
             window.CreateLayoutGroup(Type.Horizontal);
             window.OnMinimizedChangedEvent += () =>
             {
@@ -92,11 +92,13 @@ namespace ActionGroupsMod
 
         public static void UpdateUI(ActionGroup selected, bool setStagingSelected = false)
         {
+            if (windowHolder == null)
+                CreateUI();
+
             actionGroupButtons?.ForEach(Destroy);
             newActionGroupButton.Destroy();
 
             SelectedActionGroup = selected;
-
             if (selected == null)
             {
                 window.Size = new Vector2Int(HalfWindowSize.x + 20, windowSize.y);
@@ -109,7 +111,7 @@ namespace ActionGroupsMod
             }
 
             actionGroupButtons = ActionGroupManager
-                .GetCurrentActionGroups()
+                .GetCurrentActionGroups()?
                 .Select((ActionGroup ag) => CreateActionGroupUI(ag, ag == selected))
                 .ToList();
             
@@ -422,7 +424,7 @@ namespace ActionGroupsMod
             GLDrawer.Unregister(this);
         }
 
-        public void Draw()
+        void I_GLDrawer.Draw()
         {
             if (GUI.SelectedActionGroup != null)
                 BuildSelector.DrawOutline(GUI.SelectedActionGroup.parts, false, Color.white, 0.1f);

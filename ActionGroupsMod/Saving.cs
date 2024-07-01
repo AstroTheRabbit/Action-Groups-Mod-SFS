@@ -16,6 +16,8 @@ namespace ActionGroupsMod
         public bool holdToActivate;
         public List<int> partIndices;
 
+        public ActionGroupSave() {}
+
         public ActionGroupSave(ActionGroup ag, List<Part> parts)
         {
             name = ag.name;

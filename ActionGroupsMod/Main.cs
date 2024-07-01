@@ -23,7 +23,7 @@ namespace ActionGroupsMod
         public override string Description => "Adds KSP-like part action groups to SFS.";
 
         public override Dictionary<string, string> Dependencies { get; } = new Dictionary<string, string> { { "UITools", "1.1.1" }, { "customsavedata", "1.0" } };
-        public Dictionary<string, FilePath> UpdatableFiles => new Dictionary<string, FilePath>() { { "https://github.com/AstroTheRabbit/Action-Groups-Mod-SFS/releases/latest/download/ActionGroups.dll", new FolderPath(ModFolder).ExtendToFile("ActionGroups.dll") } };
+        public Dictionary<string, FilePath> UpdatableFiles => new Dictionary<string, FilePath>() ;// { { "https://github.com/AstroTheRabbit/Action-Groups-Mod-SFS/releases/latest/download/ActionGroups.dll", new FolderPath(ModFolder).ExtendToFile("ActionGroups.dll") } };
 
         public override void Early_Load()
         {
@@ -33,21 +33,16 @@ namespace ActionGroupsMod
 
         public override void Load()
         {
-            SceneHelper.OnWorldSceneLoaded += () => GUI.CreateUI("world");
-            SceneHelper.OnBuildSceneLoaded += () => GUI.CreateUI("build");
-
             SceneHelper.OnWorldSceneLoaded += () => PlayerController.main.player.OnChange += Patches.OnPlayerChange;
             SceneHelper.OnWorldSceneUnloaded += () => PlayerController.main.player.OnChange -= Patches.OnPlayerChange;
 
-            CustomBlueprintHelper.OnSave += (CustomBlueprint bp) =>
+            CustomSaveData.Main.BlueprintHelper.OnSave += (CustomBlueprint bp) =>
             {
-                Debug.Log("CustomBlueprintHelper.OnSave!!!");
                 bp.AddCustomData(ModNameID, ActionGroupSave.CreateSavesBuild());
             };
 
-            CustomBlueprintHelper.OnLoad += (CustomBlueprint bp) =>
+            CustomSaveData.Main.BlueprintHelper.OnLoad += (CustomBlueprint bp) =>
             {
-                Debug.Log("CustomBlueprintHelper.OnLoad!!!");
                 List<ActionGroupSave> saves = bp.GetCustomData<List<ActionGroupSave>>(ModNameID, out bool successful);
                 if (successful)
                     ActionGroupSave.LoadSavesBuild(saves);
@@ -55,23 +50,21 @@ namespace ActionGroupsMod
                     ActionGroupManager.buildActionGroups = new List<ActionGroup>();
                 GUI.UpdateUI(null);
             };
-            CustomBlueprintHelper.OnLaunch += (CustomBlueprint bp, Rocket[] rockets, Part[] parts) =>
+            CustomSaveData.Main.BlueprintHelper.OnLaunch += (CustomBlueprint bp, Rocket[] rockets, Part[] parts) =>
             {
-                Debug.Log("CustomBlueprintHelper.OnLaunch!!!");
                 List<ActionGroupSave> saves = bp.GetCustomData<List<ActionGroupSave>>(ModNameID, out bool successful);
                 if (successful)
                     ActionGroupSave.OnBlueprintSpawn(saves, parts);
+                GUI.UpdateUI(null);
             };
 
-            CustomRocketSaveHelper.OnSave += (CustomRocketSave save, Rocket rocket) =>
+            CustomSaveData.Main.RocketSaveHelper.OnSave += (CustomRocketSave save, Rocket rocket) =>
             {
-                Debug.Log("CustomRocketSaveHelper.OnSave!!!");
                 if (rocket.TryGetComponent(out ActionGroupModule actionGroupModule))
                     save.AddCustomData(ModNameID, actionGroupModule.actionGroups);
             };
-            CustomRocketSaveHelper.OnLoad += (CustomRocketSave save, Rocket rocket) =>
+            CustomSaveData.Main.RocketSaveHelper.OnLoad += (CustomRocketSave save, Rocket rocket) =>
             {
-                Debug.Log("CustomRocketSaveHelper.OnLoad!!!");
                 var saves = save.GetCustomData<List<ActionGroupSave>>(ModNameID, out bool successful);
                 if (successful)
                     ActionGroupSave.LoadSavesWorld(saves, rocket);
