@@ -53,7 +53,7 @@ namespace ActionGroupsMod
             foreach (int i in save.partIndices)
             {
                 if (partsList.IsValidIndex(i))
-                    AddPart(partsList[i], out bool _);
+                    AddPart(partsList[i], out _);
             }
         }
 
@@ -68,7 +68,7 @@ namespace ActionGroupsMod
         public void AddPart(Part part, out bool requiresRedraw)
         {
             requiresRedraw = false;
-            if (!parts.Contains(part) && Patches.CanStagePart(part))
+            if (!parts.Contains(part) && part.CanStagePart())
             {
                 parts.Add(part);
                 requiresRedraw = GUI.windowHolder != null && GUI.SelectedActionGroup == this;
@@ -99,7 +99,7 @@ namespace ActionGroupsMod
 
         public void Activate()
         {
-            Rocket.UseParts(false, parts.Select((Part part) => (part, (PolygonData) null)).ToArray());
+            Rocket.UseParts(false, parts.Select(part => (part, (PolygonData) null)).ToArray());
         }
     }
 

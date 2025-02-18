@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
@@ -12,29 +13,21 @@ using SFS.Builds;
 
 namespace ActionGroupsMod
 {
+    public static class PrivateMethodExtensions
+    {
+        static readonly MethodInfo method_CanStagePart = typeof(StagingDrawer).GetMethod("CanStagePart", BindingFlags.NonPublic | BindingFlags.Static);
+        static readonly MethodInfo method_IsKeyDown = typeof(KeybindingsPC.Key).GetMethod("SFS.Input.I_Key.IsKeyDown", BindingFlags.NonPublic | BindingFlags.Instance);
+        static readonly MethodInfo method_IsKeyUp = typeof(KeybindingsPC.Key).GetMethod("SFS.Input.I_Key.IsKeyUp", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        public static bool CanStagePart(this Part part) => (bool) method_CanStagePart.Invoke(null, new object[] { part, false });
+        public static bool IsKeyDown(this KeybindingsPC.Key key) => (bool) method_IsKeyDown.Invoke(key, null);
+        public static bool IsKeyUp(this KeybindingsPC.Key key) => (bool) method_IsKeyUp.Invoke(key, null);
+    }
+
     public static class Patches
     {
         public static StagingDrawer StagingDrawer => BuildManager.main != null ? BuildManager.main.buildMenus.stagingDrawer : StagingDrawer.main;
-        public static bool CanStagePart(Part part)
-        {
-            return (bool) typeof(StagingDrawer)
-                .GetMethod("CanStagePart", BindingFlags.NonPublic | BindingFlags.Static)
-                .Invoke(null, new[] { part, (object) false });
-        }
-
-        static bool Public_IsKeyDown(this KeybindingsPC.Key key) => (bool) typeof(KeybindingsPC.Key).GetMethod("SFS.Input.I_Key.IsKeyDown", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(key, null);
-        static bool Public_IsKeyUp(this KeybindingsPC.Key key) => (bool) typeof(KeybindingsPC.Key).GetMethod("SFS.Input.I_Key.IsKeyUp", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(key, null);
-
-        public static void OnPlayerChange(Player playerNew)
-        {
-            if (playerNew is Rocket rocket && GUI.windowHolder != null)
-            {
-                GUI.windowHolder.SetActive(rocket.hasControl.Value);
-                GUI.UpdateUI(null);
-            }
-        }
-
-
+        
         [HarmonyPatch(typeof(StagingDrawer), nameof(StagingDrawer.SetSelected))]
         static class StagingDrawer_SetSelected
         {
@@ -55,7 +48,7 @@ namespace ActionGroupsMod
                 if (GUI.SelectedActionGroup != null)
                 {
                     bool requiresRedraw = false;
-                    if (parts.All((Part part) => !CanStagePart(part) || GUI.SelectedActionGroup.parts.Contains(part)))
+                    if (parts.All(part => !part.CanStagePart() || GUI.SelectedActionGroup.parts.Contains(part)))
                     {
                         foreach (Part part in parts)
                         {
@@ -147,6 +140,11 @@ namespace ActionGroupsMod
         [HarmonyPatch(typeof(Screen_Game), nameof(Screen_Game.ProcessInput))]
         static class Screen_Game_ProcessInput
         {
+            static bool Prefix()
+            {
+                return !GUI.editingText;
+            }
+
             static void Postfix(Screen_Game __instance)
             {
                 if (GameManager.main?.world_Input == __instance || GameManager.main?.map_Input == __instance)
@@ -160,8 +158,8 @@ namespace ActionGroupsMod
                             if (ag.key == null)
                                 continue;
 
-                            bool keyDown = ag.key.Public_IsKeyDown();
-                            bool keyUp = ag.key.Public_IsKeyUp();
+                            bool keyDown = ag.key.IsKeyDown();
+                            bool keyUp = ag.key.IsKeyUp();
 
                             if (ag.holdToActivate)
                             {

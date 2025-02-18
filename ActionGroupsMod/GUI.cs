@@ -3,9 +3,11 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using HarmonyLib;
 using UITools;
 using SFS.Input;
+using SFS.World;
 using SFS.Parts;
 using SFS.Builds;
 using SFS.UI.ModGUI;
@@ -14,7 +16,6 @@ using Type = SFS.UI.ModGUI.Type;
 using Object = UnityEngine.Object;
 using Button = SFS.UI.ModGUI.Button;
 using GUIElement = SFS.UI.ModGUI.GUIElement;
-using UnityEngine.SceneManagement;
 
 namespace ActionGroupsMod
 {
@@ -27,6 +28,7 @@ namespace ActionGroupsMod
         public static Vector2Int windowSize = new Vector2Int(560, 740);
         public static Vector2Int HalfWindowSize => new Vector2Int((windowSize.x - 30) / 2, windowSize.y - 50);
         public static ActionGroup SelectedActionGroup { get; private set; } = null;
+        public static bool editingText = false;
         static ActionGroup minimisedActionGroup = null;
 
         public static GameObject windowHolder;
@@ -35,8 +37,8 @@ namespace ActionGroupsMod
         static Window window_actionGroups;
         static Window window_actionGroupInfo;
     
-        static List<Button> actionGroupButtons;
-        static Button newActionGroupButton;
+        static List<Button> buttons_actionGroups;
+        static Button button_newActionGroup;
         static ActionGroupInfoUI actionGroupInfoUI;
 
         static void CreateUI()
@@ -84,7 +86,7 @@ namespace ActionGroupsMod
 
         public static void DestroyWindow()
         {
-            actionGroupButtons?.Clear();
+            buttons_actionGroups?.Clear();
             actionGroupInfoUI?.DestroyUI();
             if (windowHolder != null)
                 Object.Destroy(windowHolder);
@@ -95,8 +97,9 @@ namespace ActionGroupsMod
             if (windowHolder == null)
                 CreateUI();
 
-            actionGroupButtons?.ForEach(Destroy);
-            newActionGroupButton.Destroy();
+            buttons_actionGroups?.ForEach(Destroy);
+            button_newActionGroup.Destroy();
+            editingText = false;
 
             SelectedActionGroup = selected;
             if (selected == null)
@@ -110,12 +113,12 @@ namespace ActionGroupsMod
                 window_actionGroupInfo.Active = true;
             }
 
-            actionGroupButtons = ActionGroupManager
+            buttons_actionGroups = ActionGroupManager
                 .GetCurrentActionGroups()?
-                .Select((ActionGroup ag) => CreateActionGroupUI(ag, ag == selected))
+                .Select(ag => CreateActionGroupUI(ag, ag == selected))
                 .ToList();
             
-            newActionGroupButton = Builder.CreateButton
+            button_newActionGroup = Builder.CreateButton
                 (
                     window_actionGroups,
                     HalfWindowSize.x - 10,
@@ -162,6 +165,15 @@ namespace ActionGroupsMod
             if (ui != null)
                 Object.Destroy(ui.gameObject);
         }
+
+        public static void OnPlayerChange(Player playerNew)
+        {
+            if (playerNew is Rocket rocket && windowHolder != null)
+            {
+                windowHolder.SetActive(rocket.hasControl.Value);
+                UpdateUI(null);
+            }
+        }
     }
 
     public class ActionGroupInfoUI
@@ -169,6 +181,7 @@ namespace ActionGroupsMod
         readonly TextInput input_name;
         readonly Button button_key;
         readonly Container container_hold_delete;
+        readonly Button button_activate;
         readonly Separator seperator_partIcons;
         readonly Container container_partIcons;
 
@@ -182,14 +195,16 @@ namespace ActionGroupsMod
                 50,
                 text: ag.name
             );
-            AccessTools.FieldRefAccess<TextInput, TMPro.TMP_InputField>("field").Invoke(input_name).onEndEdit.AddListener
+            input_name.field.onEndEdit.AddListener
             (
-                (string input) =>
+                input =>
                 {
                     ag.name = input;
                     GUI.UpdateUI(ag);
                 }
             );
+            input_name.field.onSelect.AddListener(_ => GUI.editingText = true);
+            input_name.field.onDeselect.AddListener(_ => GUI.editingText = false);
 
             // * Keybind
             button_key = Builder.CreateButton
@@ -233,6 +248,18 @@ namespace ActionGroupsMod
                 }
             );
 
+            //* Activate
+            button_activate = Builder.CreateButton
+            (
+                window,
+                GUI.HalfWindowSize.x - 10,
+                50,
+                text: "Activate",
+                onClick: () =>
+                {
+                    ag.Activate();
+                }
+            );
 
             // * Part Icons
             seperator_partIcons = Builder.CreateSeparator(window, GUI.HalfWindowSize.x - 10, 20);
@@ -266,6 +293,7 @@ namespace ActionGroupsMod
             input_name.Destroy();
             button_key.Destroy();
             container_hold_delete.Destroy();
+            button_activate.Destroy();
             seperator_partIcons.Destroy();
             container_partIcons.Destroy();
         }
@@ -276,7 +304,7 @@ namespace ActionGroupsMod
             KeybindScreen.Open
             (
                 ag.key,
-                (KeybindingsPC.Key result) =>
+                result =>
                 {
                     ag.key = result;
                     GUI.UpdateUI(ag);
@@ -371,7 +399,14 @@ namespace ActionGroupsMod
         {
             if (k == null)
                 return "...";
-            return (k.ctrl ? "Cmd + " : "") + GetString();
+            
+            string ctrl = Application.platform == RuntimePlatform.OSXPlayer ? "Cmd" : "Ctrl";
+
+            if (k.ctrl)
+                return ctrl + " + " + GetString();
+            else
+                return GetString();
+
             string GetString()
             {
                 switch (k.key)
