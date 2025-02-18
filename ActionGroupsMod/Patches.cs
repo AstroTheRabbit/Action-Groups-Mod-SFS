@@ -245,5 +245,15 @@ namespace ActionGroupsMod
                 agm_parent.actionGroups.RemoveRange(toDestroy);
             }
         }
+
+        [HarmonyPatch(typeof(BuildState), "Clear")]
+        public class BuildState_Clear
+        {
+            public static void Postfix()
+            {
+                ActionGroupManager.buildActionGroups.Clear();
+                GUI.UpdateUI(null);
+            }
+        }
     }
 }
