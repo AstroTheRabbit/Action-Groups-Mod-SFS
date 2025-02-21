@@ -15,7 +15,7 @@ namespace ActionGroupsMod
         public override string DisplayName => "Action Groups";
         public override string Author => "Astro The Rabbit";
         public override string MinimumGameVersionNecessary => "1.5.10.2";
-        public override string ModVersion => "1.2";
+        public override string ModVersion => "1.3";
         public override string Description => "Adds KSP-like part action groups to SFS.";
 
         public override Dictionary<string, string> Dependencies { get; } = new Dictionary<string, string> { { "UITools", "1.1.5" }, { "customsavedata", "1.0" } };

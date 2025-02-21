@@ -209,6 +209,30 @@ namespace ActionGroupsMod
             }
         }
 
+        [HarmonyPatch(typeof(RocketManager), nameof(RocketManager.MergeRockets))]
+        public class RocketManager_MergeRockets
+        {
+            public static void Prefix(Rocket rocket_A, Part part_A, Rocket rocket_B, Part part_B)
+            {
+                ActionGroupModule agm_a = rocket_A.GetOrAddComponent<ActionGroupModule>();
+                ActionGroupModule agm_b = rocket_B.GetOrAddComponent<ActionGroupModule>();
+
+                foreach (ActionGroup ag_b in agm_b.actionGroups)
+                {
+                    if (agm_a.actionGroups.Find(ag => ag.name == ag_b.name) is ActionGroup ag_a)
+                    {
+                        ag_a.parts.AddRange(ag_b.parts);
+                    }
+                    else
+                    {
+                        agm_a.actionGroups.Add(ag_b);
+                    }
+                }
+
+                GUI.UpdateUI(GUI.SelectedActionGroup);
+            }
+        }
+
         [HarmonyPatch(typeof(RocketManager), nameof(RocketManager.CreateRocket_Child))]
         static class RocketManager_CreateRocket_Child
         {

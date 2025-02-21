@@ -249,17 +249,20 @@ namespace ActionGroupsMod
             );
 
             //* Activate
-            button_activate = Builder.CreateButton
-            (
-                window,
-                GUI.HalfWindowSize.x - 10,
-                50,
-                text: "Activate",
-                onClick: () =>
-                {
-                    ag.Activate();
-                }
-            );
+            if (ActionGroupManager.InWorld)
+            {
+                button_activate = Builder.CreateButton
+                (
+                    window,
+                    GUI.HalfWindowSize.x - 10,
+                    50,
+                    text: "Activate",
+                    onClick: () =>
+                    {
+                        ag.Activate();
+                    }
+                );
+            }
 
             // * Part Icons
             seperator_partIcons = Builder.CreateSeparator(window, GUI.HalfWindowSize.x - 10, 20);
