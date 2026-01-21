@@ -15,11 +15,21 @@ namespace ActionGroupsMod
         public override string DisplayName => "Action Groups";
         public override string Author => "Astro The Rabbit";
         public override string MinimumGameVersionNecessary => "1.5.10.2";
-        public override string ModVersion => "1.3";
+        public override string ModVersion => "1.4";
         public override string Description => "Adds KSP-like part action groups to SFS.";
 
-        public override Dictionary<string, string> Dependencies { get; } = new Dictionary<string, string> { { "UITools", "1.1.5" }, { "customsavedata", "1.0" } };
-        public Dictionary<string, FilePath> UpdatableFiles => new Dictionary<string, FilePath>() { { "https://github.com/AstroTheRabbit/Action-Groups-Mod-SFS/releases/latest/download/ActionGroupsMod.dll", new FolderPath(ModFolder).ExtendToFile("ActionGroupsMod.dll") } };
+        public override Dictionary<string, string> Dependencies { get; } = new Dictionary<string, string>
+        {
+            { "UITools", "1.1.5" },
+            { "customsavedata", "1.0" }
+        };
+        public Dictionary<string, FilePath> UpdatableFiles => new Dictionary<string, FilePath>()
+        {
+            {
+                "https://github.com/AstroTheRabbit/Action-Groups-Mod-SFS/releases/latest/download/ActionGroupsMod.dll",
+                new FolderPath(ModFolder).ExtendToFile("ActionGroupsMod.dll")
+            }
+        };
 
         public override void Early_Load()
         {
@@ -29,9 +39,10 @@ namespace ActionGroupsMod
 
         public override void Load()
         {
+            Settings.Init();
+            SavingHelpers.AddHelpers();
             SceneHelper.OnWorldSceneLoaded += () => PlayerController.main.player.OnChange += GUI.OnPlayerChange;
             SceneHelper.OnWorldSceneUnloaded += () => PlayerController.main.player.OnChange -= GUI.OnPlayerChange;
-            SavingHelpers.AddHelpers();
         }
     }
 }

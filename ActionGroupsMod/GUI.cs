@@ -34,11 +34,11 @@ namespace ActionGroupsMod
         public static GameObject windowHolder;
         static ClosableWindow window;
 
-        static Window window_actionGroups;
-        static Window window_actionGroupInfo;
+        static Window window_groups;
+        static Window window_info;
     
-        static List<Button> buttons_actionGroups;
-        static Button button_newActionGroup;
+        static List<Button> buttons_groups;
+        static Button button_new;
         static ActionGroupInfoUI actionGroupInfoUI;
 
         static void CreateUI()
@@ -52,7 +52,7 @@ namespace ActionGroupsMod
             (
                 windowHolder.transform,
                 windowID,
-                windowSize.x,
+                HalfWindowSize.x + 20,
                 windowSize.y,
                 draggable: true,
                 savePosition: true,
@@ -60,33 +60,34 @@ namespace ActionGroupsMod
             );
             window.RegisterPermanentSaving(Main.main.ModNameID + "." + SceneManager.GetActiveScene().name);
             window.CreateLayoutGroup(Type.Horizontal);
+            
+            window_groups = Builder.CreateWindow(window, actionGroupsWindowID, HalfWindowSize.x, HalfWindowSize.y, savePosition: false);
+            window_groups.CreateLayoutGroup(Type.Vertical, TextAnchor.UpperCenter);
+            window_groups.EnableScrolling(Type.Vertical);
+
+            window_info = Builder.CreateWindow(window, actionGroupInfoWindowID, HalfWindowSize.x, HalfWindowSize.y, savePosition: false);
+            window_info.CreateLayoutGroup(Type.Vertical, TextAnchor.UpperCenter);
+            window_info.EnableScrolling(Type.Vertical);
+
             window.OnMinimizedChangedEvent += () =>
             {
-                if (window.Minimized)
+                if (Settings.settings.WindowMinimized = window.Minimized)
                 {
                     minimisedActionGroup = SelectedActionGroup;
-                    SelectedActionGroup = null;
+                    UpdateUI(null);
                 }
                 else
                 {
                     UpdateUI(minimisedActionGroup);
+                    minimisedActionGroup = null;
                 }
             };
-            
-            window_actionGroups = Builder.CreateWindow(window, actionGroupsWindowID, HalfWindowSize.x, HalfWindowSize.y, savePosition: false);
-            window_actionGroups.CreateLayoutGroup(Type.Vertical, TextAnchor.UpperCenter);
-            window_actionGroups.EnableScrolling(Type.Vertical);
-
-            window_actionGroupInfo = Builder.CreateWindow(window, actionGroupInfoWindowID, HalfWindowSize.x, HalfWindowSize.y, savePosition: false);
-            window_actionGroupInfo.CreateLayoutGroup(Type.Vertical, TextAnchor.UpperCenter);
-            window_actionGroupInfo.EnableScrolling(Type.Vertical);
-
-            UpdateUI(null);
+            window.Minimized = Settings.settings.WindowMinimized;
         }
 
         public static void DestroyWindow()
         {
-            buttons_actionGroups?.Clear();
+            buttons_groups?.Clear();
             actionGroupInfoUI?.DestroyUI();
             if (windowHolder != null)
                 Object.Destroy(windowHolder);
@@ -94,53 +95,63 @@ namespace ActionGroupsMod
 
         public static void UpdateUI(ActionGroup selected, bool setStagingSelected = false)
         {
+            SelectedActionGroup = selected;
+            
             if (windowHolder == null)
+            {
                 CreateUI();
+            }
 
-            buttons_actionGroups?.ForEach(Destroy);
-            button_newActionGroup.Destroy();
+            buttons_groups?.ForEach(Destroy);
+            button_new.Destroy();
             editingText = false;
 
-            SelectedActionGroup = selected;
+            if (setStagingSelected)
+            {
+                Patches.StagingDrawer.SetSelected(null);
+            }
+
             if (selected == null)
             {
                 window.Size = new Vector2Int(HalfWindowSize.x + 20, windowSize.y);
-                window_actionGroupInfo.Active = false;
+                window_info.Active = false;
             }
             else
             {
                 window.Size = windowSize;
-                window_actionGroupInfo.Active = true;
+                window_info.Active = true;
             }
 
-            buttons_actionGroups = ActionGroupManager
+            if (window.Minimized)
+            {
+                return;
+            }
+
+            buttons_groups = ActionGroupManager
                 .GetCurrentActionGroups()?
                 .Select(ag => CreateActionGroupUI(ag, ag == selected))
                 .ToList();
             
-            button_newActionGroup = Builder.CreateButton
-                (
-                    window_actionGroups,
-                    HalfWindowSize.x - 10,
-                    60,
-                    text: "New",
-                    onClick: () =>
-                    {
-                        ActionGroup ag = new ActionGroup();
-                        ActionGroupManager.GetCurrentActionGroups().Add(ag);
-                        UpdateUI(ag, true);
-                    }
-                );
-
-            if (setStagingSelected)
-                Patches.StagingDrawer.SetSelected(null);
+            button_new = Builder.CreateButton
+            (
+                window_groups,
+                HalfWindowSize.x - 10,
+                60,
+                text: "New",
+                onClick: () =>
+                {
+                    ActionGroup ag = new ActionGroup();
+                    ActionGroupManager.GetCurrentActionGroups().Add(ag);
+                    UpdateUI(ag, true);
+                }
+            );
         }
 
         static Button CreateActionGroupUI(ActionGroup ag, bool selected)
         {
             Button button = Builder.CreateButton
             (
-                window_actionGroups,
+                window_groups,
                 HalfWindowSize.x - 10,
                 120,
                 text: $"{ag.name}\n({KeybindScreen.GetDisplayName(ag.key)})",
@@ -150,7 +161,7 @@ namespace ActionGroupsMod
             {
                 button.SetSelected(true);
                 actionGroupInfoUI?.DestroyUI();
-                actionGroupInfoUI = new ActionGroupInfoUI(ag, window_actionGroupInfo);
+                actionGroupInfoUI = new ActionGroupInfoUI(ag, window_info);
             }
             return button;
         }
@@ -182,8 +193,8 @@ namespace ActionGroupsMod
         readonly Button button_key;
         readonly Container container_hold_delete;
         readonly Button button_activate;
-        readonly Separator seperator_partIcons;
-        readonly Container container_partIcons;
+        readonly Separator seperator_icons;
+        readonly Container container_icons;
 
         public ActionGroupInfoUI(ActionGroup ag, Window window)
         {
@@ -265,14 +276,14 @@ namespace ActionGroupsMod
             }
 
             // * Part Icons
-            seperator_partIcons = Builder.CreateSeparator(window, GUI.HalfWindowSize.x - 10, 20);
-            container_partIcons = Builder.CreateContainer(window);
-            container_partIcons.CreateLayoutGroup(Type.Horizontal);
+            seperator_icons = Builder.CreateSeparator(window, GUI.HalfWindowSize.x - 10, 20);
+            container_icons = Builder.CreateContainer(window);
+            container_icons.CreateLayoutGroup(Type.Horizontal);
 
-            Container partIconsHolderLeft = Builder.CreateContainer(container_partIcons);
+            Container partIconsHolderLeft = Builder.CreateContainer(container_icons);
             partIconsHolderLeft.CreateLayoutGroup(Type.Vertical);
             
-            Container partIconsHolderRight = Builder.CreateContainer(container_partIcons);
+            Container partIconsHolderRight = Builder.CreateContainer(container_icons);
             partIconsHolderRight.CreateLayoutGroup(Type.Vertical);
 
             int heightLeft = 0, heightRight = 0;
@@ -297,8 +308,8 @@ namespace ActionGroupsMod
             button_key.Destroy();
             container_hold_delete.Destroy();
             button_activate.Destroy();
-            seperator_partIcons.Destroy();
-            container_partIcons.Destroy();
+            seperator_icons.Destroy();
+            container_icons.Destroy();
         }
 
         public void OpenKeybindScreen(ActionGroup ag)
@@ -452,12 +463,12 @@ namespace ActionGroupsMod
     // ? Derived from `SFS.Builds.BuildSelector`.
     public class PartsOutline : MonoBehaviour, I_GLDrawer
     {
-        void Awake()
+        internal void Awake()
         {
             GLDrawer.Register(this);
         }
 
-        void OnDestroy()
+        internal void OnDestroy()
         {
             GLDrawer.Unregister(this);
         }
