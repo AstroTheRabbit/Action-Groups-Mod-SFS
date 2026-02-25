@@ -5,12 +5,11 @@ using ModLoader;
 using ModLoader.Helpers;
 using SFS.IO;
 using SFS.World;
-using UITools;
 
 namespace ActionGroupsMod
 {
     [UsedImplicitly]
-    public class Entrypoint : Mod, IUpdatable
+    public class Entrypoint : Mod // ! , IUpdatable
     {
         public static Entrypoint Main { get; private set; }
         public override string ModNameID => "actiongroups";
