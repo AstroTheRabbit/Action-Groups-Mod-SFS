@@ -1,23 +1,24 @@
-using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Collections.Generic;
-using UnityEngine;
 using HarmonyLib;
-using SFS.UI;
-using SFS.Parts;
-using SFS.World;
 using SFS.Audio;
-using SFS.Input;
 using SFS.Builds;
+using SFS.Input;
+using SFS.Parts;
+using SFS.UI;
+using SFS.World;
+using UnityEngine;
+
+// ReSharper disable InconsistentNaming
 
 namespace ActionGroupsMod
 {
     public static class PrivateMethodExtensions
     {
-        static readonly MethodInfo method_CanStagePart = typeof(StagingDrawer).GetMethod("CanStagePart", BindingFlags.NonPublic | BindingFlags.Static);
-        static readonly MethodInfo method_IsKeyDown = typeof(KeybindingsPC.Key).GetMethod("SFS.Input.I_Key.IsKeyDown", BindingFlags.NonPublic | BindingFlags.Instance);
-        static readonly MethodInfo method_IsKeyUp = typeof(KeybindingsPC.Key).GetMethod("SFS.Input.I_Key.IsKeyUp", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly MethodInfo method_CanStagePart = typeof(StagingDrawer).GetMethod("CanStagePart", BindingFlags.NonPublic | BindingFlags.Static);
+        private static readonly MethodInfo method_IsKeyDown = typeof(KeybindingsPC.Key).GetMethod("SFS.Input.I_Key.IsKeyDown", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly MethodInfo method_IsKeyUp = typeof(KeybindingsPC.Key).GetMethod("SFS.Input.I_Key.IsKeyUp", BindingFlags.NonPublic | BindingFlags.Instance);
 
         public static bool CanStagePart(this Part part) => (bool) method_CanStagePart.Invoke(null, new object[] { part, false });
         public static bool IsKeyDown(this KeybindingsPC.Key key) => (bool) method_IsKeyDown.Invoke(key, null);
@@ -29,9 +30,9 @@ namespace ActionGroupsMod
         public static StagingDrawer StagingDrawer => BuildManager.main != null ? BuildManager.main.buildMenus.stagingDrawer : StagingDrawer.main;
         
         [HarmonyPatch(typeof(StagingDrawer), nameof(StagingDrawer.SetSelected))]
-        static class StagingDrawer_SetSelected
+        public static class StagingDrawer_SetSelected
         {
-            static void Prefix(StageUI a)
+            public static void Prefix(StageUI a)
             {
                 if (a != null && GUI.windowHolder != null)
                 {
@@ -41,9 +42,9 @@ namespace ActionGroupsMod
         }
 
         [HarmonyPatch(typeof(BuildMenus), nameof(BuildMenus.OnAreaSelect))]
-        static class BuildMenus_OnAreaSelect
+        public static class BuildMenus_OnAreaSelect
         {
-            static bool Prefix(Part[] parts)
+            public static bool Prefix(Part[] parts)
             {
                 if (GUI.SelectedActionGroup != null)
                 {
@@ -76,9 +77,9 @@ namespace ActionGroupsMod
         }
 
         [HarmonyPatch(typeof(BuildMenus), nameof(BuildMenus.OnPartClick))]
-        static class BuildMenus_OnPartClick
+        public static class BuildMenus_OnPartClick
         {
-            static bool Prefix(PartHit hit)
+            public static bool Prefix(PartHit hit)
             {
                 if (GUI.SelectedActionGroup != null)
                 {
@@ -95,18 +96,18 @@ namespace ActionGroupsMod
         }
 
         [HarmonyPatch(typeof(BuildMenus), nameof(BuildMenus.OnEmptyClick))]
-        static class BuildMenus_OnEmptyClick
+        public static class BuildMenus_OnEmptyClick
         {
-            static void Postfix()
+            public static void Postfix()
             {
                 GUI.UpdateUI(null);
             }
         }
 
         [HarmonyPatch(typeof(Rocket), "ClickPart")]
-        static class Rocket_ClickPart
+        public static class Rocket_ClickPart
         {
-            static bool Prefix(Rocket __instance, TouchPosition position, ref bool __result)
+            public static bool Prefix(Rocket __instance, TouchPosition position, ref bool __result)
             {
                 if (GUI.SelectedActionGroup != null)
                 {
@@ -138,14 +139,14 @@ namespace ActionGroupsMod
         }
 
         [HarmonyPatch(typeof(Screen_Game), nameof(Screen_Game.ProcessInput))]
-        static class Screen_Game_ProcessInput
+        public static class Screen_Game_ProcessInput
         {
-            static bool Prefix()
+            public static bool Prefix()
             {
                 return !GUI.editingText;
             }
 
-            static void Postfix(Screen_Game __instance)
+            public static void Postfix(Screen_Game __instance)
             {
                 if (GameManager.main?.world_Input == __instance || GameManager.main?.map_Input == __instance)
                 {
@@ -198,7 +199,7 @@ namespace ActionGroupsMod
                     }
                     else if (!rocket.physics.PhysicsMode)
                     {
-                        MsgDrawer.main.Log("Cannot use action groups while timewarping");
+                        MsgDrawer.main.Log("Cannot use action groups while time warping");
                         return false;
                     }
                     else
@@ -212,7 +213,7 @@ namespace ActionGroupsMod
         [HarmonyPatch(typeof(RocketManager), nameof(RocketManager.MergeRockets))]
         public class RocketManager_MergeRockets
         {
-            public static void Prefix(Rocket rocket_A, Part part_A, Rocket rocket_B, Part part_B)
+            public static void Prefix(Rocket rocket_A, Rocket rocket_B)
             {
                 ActionGroupModule agm_a = rocket_A.GetOrAddComponent<ActionGroupModule>();
                 ActionGroupModule agm_b = rocket_B.GetOrAddComponent<ActionGroupModule>();
@@ -234,9 +235,9 @@ namespace ActionGroupsMod
         }
 
         [HarmonyPatch(typeof(RocketManager), nameof(RocketManager.CreateRocket_Child))]
-        static class RocketManager_CreateRocket_Child
+        public static class RocketManager_CreateRocket_Child
         {
-            static void Postfix(Rocket parentRocket, ref Rocket __result)
+            public static void Postfix(Rocket parentRocket, ref Rocket __result)
             {
                 ActionGroupModule agm_parent = parentRocket.GetOrAddComponent<ActionGroupModule>();
                 ActionGroupModule agm_child = __result.GetOrAddComponent<ActionGroupModule>();

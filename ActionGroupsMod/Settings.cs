@@ -8,7 +8,7 @@ namespace ActionGroupsMod
     public class Settings : ModSettings<Settings.Data>
     {
         private static Settings main;
-        protected override FilePath SettingsFile => new FolderPath(Main.main.ModFolder).ExtendToFile("settings.txt");
+        protected override FilePath SettingsFile => new FolderPath(Entrypoint.Main.ModFolder).ExtendToFile("settings.txt");
 
         protected override void RegisterOnVariableChange(Action onChange)
         {

@@ -1,13 +1,13 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
+using SFS.Builds;
+using SFS.Input;
+using SFS.Parts;
+using SFS.Parts.Modules;
+using SFS.World;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using SFS.Input;
-using SFS.World;
-using SFS.Parts;
-using SFS.Builds;
-using SFS.Parts.Modules;
 
 namespace ActionGroupsMod
 {
@@ -38,8 +38,8 @@ namespace ActionGroupsMod
     public class ActionGroup
     {
         public string name = "Unnamed";
-        public KeybindingsPC.Key key = null;
-        public bool holdToActivate = false;
+        public KeybindingsPC.Key key;
+        public bool holdToActivate;
         public bool holdToggled = false;
         public List<Part> parts = new List<Part>();
 
@@ -90,7 +90,7 @@ namespace ActionGroupsMod
                 part.onPartDestroyed = (Action<Part>) Delegate.Remove(part.onPartDestroyed, new Action<Part>(OnPartDestroyed));
         }
 
-        void OnPartDestroyed(Part part)
+        private void OnPartDestroyed(Part part)
         {
             RemovePart(part, out bool requiresRedraw);
             if (requiresRedraw)

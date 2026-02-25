@@ -1,47 +1,46 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.SceneManagement;
+using System.Linq;
 using HarmonyLib;
-using UITools;
-using SFS.Input;
-using SFS.World;
-using SFS.Parts;
 using SFS.Builds;
+using SFS.Input;
+using SFS.Parts;
 using SFS.UI.ModGUI;
-
-using Type = SFS.UI.ModGUI.Type;
-using Object = UnityEngine.Object;
+using SFS.World;
+using UITools;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using Button = SFS.UI.ModGUI.Button;
 using GUIElement = SFS.UI.ModGUI.GUIElement;
+using Object = UnityEngine.Object;
+using Type = SFS.UI.ModGUI.Type;
 
 namespace ActionGroupsMod
 {
     public static class GUI
     {
-        static readonly int windowID = Builder.GetRandomID();
-        static readonly int actionGroupsWindowID = Builder.GetRandomID();
-        static readonly int actionGroupInfoWindowID = Builder.GetRandomID();
+        private static readonly int windowID = Builder.GetRandomID();
+        private static readonly int actionGroupsWindowID = Builder.GetRandomID();
+        private static readonly int actionGroupInfoWindowID = Builder.GetRandomID();
 
         public static Vector2Int windowSize = new Vector2Int(560, 740);
         public static Vector2Int HalfWindowSize => new Vector2Int((windowSize.x - 30) / 2, windowSize.y - 50);
-        public static ActionGroup SelectedActionGroup { get; private set; } = null;
-        public static bool editingText = false;
-        static ActionGroup minimisedActionGroup = null;
+        public static ActionGroup SelectedActionGroup { get; private set; }
+        public static bool editingText;
+        private static ActionGroup minimisedActionGroup;
 
         public static GameObject windowHolder;
-        static ClosableWindow window;
+        private static ClosableWindow window;
 
-        static Window window_groups;
-        static Window window_info;
-    
-        static List<Button> buttons_groups;
-        static Button button_new;
-        static ActionGroupInfoUI actionGroupInfoUI;
+        private static Window window_groups;
+        private static Window window_info;
 
-        static void CreateUI()
+        private static List<Button> buttons_groups;
+        private static Button button_new;
+        private static ActionGroupInfoUI actionGroupInfoUI;
+
+        private static void CreateUI()
         {
             DestroyWindow();
 
@@ -58,7 +57,7 @@ namespace ActionGroupsMod
                 savePosition: true,
                 titleText: "Action Groups"
             );
-            window.RegisterPermanentSaving(Main.main.ModNameID + "." + SceneManager.GetActiveScene().name);
+            window.RegisterPermanentSaving(Entrypoint.Main.ModNameID + "." + SceneManager.GetActiveScene().name);
             window.CreateLayoutGroup(Type.Horizontal);
             
             window_groups = Builder.CreateWindow(window, actionGroupsWindowID, HalfWindowSize.x, HalfWindowSize.y, savePosition: false);
@@ -147,7 +146,7 @@ namespace ActionGroupsMod
             );
         }
 
-        static Button CreateActionGroupUI(ActionGroup ag, bool selected)
+        private static Button CreateActionGroupUI(ActionGroup ag, bool selected)
         {
             Button button = Builder.CreateButton
             (
@@ -189,12 +188,12 @@ namespace ActionGroupsMod
 
     public class ActionGroupInfoUI
     {
-        readonly TextInput input_name;
-        readonly Button button_key;
-        readonly Container container_hold_delete;
-        readonly Button button_activate;
-        readonly Separator seperator_icons;
-        readonly Container container_icons;
+        private readonly TextInput input_name;
+        private readonly Button button_key;
+        private readonly Container container_hold_delete;
+        private readonly Button button_activate;
+        private readonly Separator seperator_icons;
+        private readonly Container container_icons;
 
         public ActionGroupInfoUI(ActionGroup ag, Window window)
         {
@@ -268,10 +267,7 @@ namespace ActionGroupsMod
                     GUI.HalfWindowSize.x - 10,
                     50,
                     text: "Activate",
-                    onClick: () =>
-                    {
-                        ag.Activate();
-                    }
+                    onClick: ag.Activate
                 );
             }
 
@@ -345,13 +341,13 @@ namespace ActionGroupsMod
     }
 
     // ? Derived from `SFS.Input.KeyBinder`.
-    class KeybindScreen : Screen_Base
+    internal class KeybindScreen : Screen_Base
     {
-        static KeybindScreen main;
-        static readonly int blurWindowID = Builder.GetRandomID();
-        Window blurWindow;
-        KeybindingsPC.Key currentKey;
-        Action<KeybindingsPC.Key> onResult;
+        private static KeybindScreen main;
+        private static readonly int blurWindowID = Builder.GetRandomID();
+        private Window blurWindow;
+        private KeybindingsPC.Key currentKey;
+        private Action<KeybindingsPC.Key> onResult;
 
         public override bool PauseWhileOpen => true;
 
@@ -423,6 +419,7 @@ namespace ActionGroupsMod
 
             string GetString()
             {
+                // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
                 switch (k.key)
                 {
                     case KeyCode.UpArrow:
@@ -434,11 +431,9 @@ namespace ActionGroupsMod
                     case KeyCode.RightArrow:
                         return "Right";
                     case KeyCode.LeftControl:
-                        return "Cmd";
                     case KeyCode.RightControl:
                         return "Cmd";
                     case KeyCode.LeftShift:
-                        return "Shift";
                     case KeyCode.RightShift:
                         return "Shift";
                     case KeyCode.Period:
@@ -450,12 +445,11 @@ namespace ActionGroupsMod
                     case KeyCode.RightBracket:
                         return "]";
                     case KeyCode.Return:
-                        return "Enter";
                     case KeyCode.KeypadEnter:
                         return "Enter";
                     default:
                         return k.key.ToString();
-                };
+                }
             }
         }
     }

@@ -1,27 +1,29 @@
 ﻿using System.Collections.Generic;
 using HarmonyLib;
-using UITools;
-using SFS.IO;
-using SFS.World;
+using JetBrains.Annotations;
 using ModLoader;
 using ModLoader.Helpers;
+using SFS.IO;
+using SFS.World;
+using UITools;
 
 namespace ActionGroupsMod
 {
-    public class Main : Mod, IUpdatable
+    [UsedImplicitly]
+    public class Entrypoint : Mod, IUpdatable
     {
-        public static Main main;
+        public static Entrypoint Main { get; private set; }
         public override string ModNameID => "actiongroups";
         public override string DisplayName => "Action Groups";
         public override string Author => "Astro The Rabbit";
-        public override string MinimumGameVersionNecessary => "1.5.10.2";
-        public override string ModVersion => "1.4";
+        public override string MinimumGameVersionNecessary => "1.6.0.14";
+        public override string ModVersion => "1.5";
         public override string Description => "Adds KSP-like part action groups to SFS.";
 
         public override Dictionary<string, string> Dependencies { get; } = new Dictionary<string, string>
         {
             { "UITools", "1.1.5" },
-            { "customsavedata", "1.0" }
+            { "customsavedata", "1.3" }
         };
         public Dictionary<string, FilePath> UpdatableFiles => new Dictionary<string, FilePath>()
         {
@@ -34,7 +36,7 @@ namespace ActionGroupsMod
         public override void Early_Load()
         {
             new Harmony(ModNameID).PatchAll();
-            main = this;
+            Main = this;
         }
 
         public override void Load()
